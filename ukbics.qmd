@@ -1,11 +1,16 @@
 ---
 title: "ukbics"
-format: html
+format: 
+  html:
+    page-layout: full
 standalone: true
 embed-resources: true
 execute: 
-  cache: refresh
+  cache: true
+  warning: false
 ---
+
+
 
 ```{r setup}
 library(ggplot2)
@@ -13,7 +18,10 @@ library(dplyr)
 library(purrr)
 ```
 
-The components can be found online, at the [UKB imaging resource page](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/index.html). Here we define a brief helper to extract them.
+
+The nifti containing the image is found on the [imaging analysis page](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/fbp/), under [Templates and training data needed by the pipeline](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/fbp/templates/dckr_build/DATA_public.tar.gz) that links to a compressed archive called Data_public.tar.gz. The relevant templates are underneath the `group/` folder (e.g., `group/melodic_IC_100.nii.gz`).
+
+That file contains all 100, but only the 55 good ones are needed. The labels for good components can be found online, at the [UKB imaging resource page](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/index.html). Here is a small utility to download the list.
 
 ```{r components}
 
@@ -34,9 +42,7 @@ components
 
 As expected, there are 55.
 
-The nifti containing the image is found on the [imaging analysis page](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/fbp/), under [Templates and training data needed by the pipeline](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/fbp/templates/dckr_build/DATA_public.tar.gz) that links to a compressed archive called Data_public.tar.gz. The relevant templates are underneath the `group/` folder (e.g., `group/melodic_IC_100.nii.gz`).
-
-From the relevant template, extract individual slices each of the volumes. Slices are defined as whichever one has the largest voxel intensity. Alternative methods for defining a 2d visualization exist, but this "slice with the largest intensity" approach produces images that match the [netmat explorer](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/netjs_d100/). 
+Next, use the good components to index the volumes in the nifti, and from those volumes extract individual slices. Slices are defined as whichever one has the largest voxel intensity within the volume. This "slice with the largest intensity" approach produces images that resemble the slices shown by the [netmat explorer](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/netjs_d100/). 
 
 The results of the extraction are concatenated and stored in a long-form tbl for easy plotting.
 
@@ -68,9 +74,6 @@ out <- map(components, get_slice_from_cog, nii_file = "melodic_IC_100.nii.gz") |
 Finally, we'll grab an MNI template to use as a background image.
 
 ```{r mni}
-#' note: nio can be installed with remotes::install_github("psadil/nio")
-#' and MNITemplate with remotes::install_github("Jfortin1/MNITemplate)
-
 mni <- nio::to_tbl(MNITemplate::getMNIPath("Brain", res = "2mm"), measure = "brain") |>
   mutate(brain = if_else(brain==0, NA, brain)) |>
   na.omit()
@@ -81,7 +84,7 @@ Here is one quick way to plot the brains.
 
 ```{r plot}
 #| fig-height: 12
-#| fig-width: 8
+#| fig-width: 12
 #| fig-dpi: 100
 
 #' note rescaling by max value in component, 
@@ -105,5 +108,11 @@ out |>
   theme_void() +
   coord_fixed() +
   theme(legend.position = "none")
+```
+
+
+
+```{r}
+sessioninfo::session_info()
 ```
 
