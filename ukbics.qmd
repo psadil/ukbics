@@ -34,7 +34,7 @@ components
 
 As expected, there are 55.
 
-The nifti containing the image is found on the [imaging analysis page](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/fbp/), under [Templates and training data needed by the pipeline](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/fbp/templates/dckr_build/DATA_public.tar.gz) that links to a compressed archive called Data_public.tar.gz. The relevant templates are underneated the `group/` folder (e.g., `group/melodic_IC_100.nii.gz`).
+The nifti containing the image is found on the [imaging analysis page](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/fbp/), under [Templates and training data needed by the pipeline](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/fbp/templates/dckr_build/DATA_public.tar.gz) that links to a compressed archive called Data_public.tar.gz. The relevant templates are underneath the `group/` folder (e.g., `group/melodic_IC_100.nii.gz`).
 
 From the relevant template, extract individual slices each of the volumes. Slices are defined as whichever one has the largest voxel intensity. Alternative methods for defining a 2d visualization exist, but this "slice with the largest intensity" approach produces images that match the [netmat explorer](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/netjs_d100/). 
 
@@ -77,12 +77,12 @@ mni <- nio::to_tbl(MNITemplate::getMNIPath("Brain", res = "2mm"), measure = "bra
 
 ```
 
-Here is one quick way to plot the brains. Note that the 
+Here is one quick way to plot the brains. 
 
 ```{r plot}
 #| fig-height: 12
 #| fig-width: 8
-#| fig-dpi: 300
+#| fig-dpi: 100
 
 #' note rescaling by max value in component, 
 #' which helps display both concentrated and diffuse components
