@@ -1,0 +1,109 @@
+---
+title: "ukbics"
+format: html
+standalone: true
+embed-resources: true
+execute: 
+  cache: refresh
+---
+
+```{r setup}
+library(ggplot2)
+library(dplyr)
+library(purrr)
+```
+
+The components can be found online, at the [UKB imaging resource page](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/index.html). Here we define a brief helper to extract them.
+
+```{r components}
+
+#' Download GoodComponents
+#'  
+#' @return vector indicating which volumes are good
+download_components <- function(){
+  components <- readr::read_lines(
+    "https://www.fmrib.ox.ac.uk/datasets/ukbiobank/group_means/rfMRI_GoodComponents_d100_v1.txt") |> 
+    stringr::str_split_1("[[:space:]]+") |> 
+    as.numeric()
+}
+
+
+components <- download_components()
+components
+```
+
+As expected, there are 55.
+
+The nifti containing the image is found on the [imaging analysis page](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/fbp/), under [Templates and training data needed by the pipeline](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/fbp/templates/dckr_build/DATA_public.tar.gz) that links to a compressed archive called Data_public.tar.gz. The relevant templates are underneated the `group/` folder (e.g., `group/melodic_IC_100.nii.gz`).
+
+From the relevant template, extract individual slices each of the volumes. Slices are defined as whichever one has the largest voxel intensity. Alternative methods for defining a 2d visualization exist, but this "slice with the largest intensity" approach produces images that match the [netmat explorer](https://www.fmrib.ox.ac.uk/datasets/ukbiobank/netjs_d100/). 
+
+The results of the extraction are concatenated and stored in a long-form tbl for easy plotting.
+
+```{r loading}
+
+#' Find Slice for Plotting
+#'
+#' @param component integer for indexing into nifti
+#' @param nii_file nifti to be indexed
+#'
+#' @return tbl of values
+get_slice_from_cog <- function(component, nii_file){
+  nii <- RNifti::readNifti(nii_file, volumes = component) |>
+    abs()
+  cog <- arrayInd(which.max(nii), dim(nii))
+
+  d <- nio::to_tbl0(nii) |>
+    dplyr::filter(k == cog[3]) 
+  d
+}
+
+
+out <- map(components, get_slice_from_cog, nii_file = "melodic_IC_100.nii.gz") |>
+  bind_rows(.id = "t") |>
+  mutate(t = as.integer(t))
+
+```
+
+Finally, we'll grab an MNI template to use as a background image.
+
+```{r mni}
+#' note: nio can be installed with remotes::install_github("psadil/nio")
+#' and MNITemplate with remotes::install_github("Jfortin1/MNITemplate)
+
+mni <- nio::to_tbl(MNITemplate::getMNIPath("Brain", res = "2mm"), measure = "brain") |>
+  mutate(brain = if_else(brain==0, NA, brain)) |>
+  na.omit()
+
+```
+
+Here is one quick way to plot the brains. Note that the 
+
+```{r plot}
+#| fig-height: 12
+#| fig-width: 8
+#| fig-dpi: 300
+
+#' note rescaling by max value in component, 
+#' which helps display both concentrated and diffuse components
+out |>
+  mutate(value = value / max(value), .by = t) |> 
+  left_join(mni, by = join_by(i, j, k)) |>
+  mutate(value = if_else(value == 0, NA, value)) |>
+  ggplot(aes(x=i, y=j)) + 
+  facet_wrap(~t) +
+  geom_raster(aes(fill=brain)) +
+  scale_fill_distiller(
+    type = "seq",
+    direction = -1,
+    palette = "Greys", 
+    na.value = "transparent") +
+  ggnewscale::new_scale_fill() +
+  geom_raster(aes(alpha=value, fill=value)) +
+  scale_fill_viridis_c(option = "inferno", na.value = "transparent") +
+  scale_alpha_continuous(range = c(0, 1)) +
+  theme_void() +
+  coord_fixed() +
+  theme(legend.position = "none")
+```
+
